@@ -1132,3 +1132,52 @@ body {
     font-size: 18px;
     font-weight: 600;
 }
+/* =========================
+   MOBİL - YETKİNLİK KARTLARI
+========================= */
+
+@media (max-width: 768px) {
+
+    #yetkinlikListesi {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 18px !important;
+        padding: 12px !important;
+    }
+
+    #yetkinlikListesi .operator-card,
+    #yetkinlikListesi .kalip-card,
+    #yetkinlikListesi .result-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: auto !important;
+
+        padding: 22px 18px !important;
+        border-radius: 24px !important;
+
+        margin: 0 auto !important;
+    }
+
+    #yetkinlikListesi h3 {
+        font-size: 28px !important;
+        line-height: 1.2 !important;
+        word-break: break-word;
+    }
+
+    #yetkinlikListesi p {
+        font-size: 17px !important;
+        line-height: 1.4 !important;
+    }
+
+    #yetkinlikListesi .seviye-badge {
+        width: 100% !important;
+        max-width: 100% !important;
+
+        font-size: 15px !important;
+        padding: 12px 14px !important;
+    }
+
+    #yetkinlikListesi button {
+        width: 100% !important;
+    }
+}
