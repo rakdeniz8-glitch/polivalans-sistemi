@@ -177,10 +177,9 @@
         <div id="operatorListesi"></div>
     </div>
 
+    <!-- Yeni operatör ekleme modalı -->
     <div id="operatorEkleModal" class="operator-modal" style="display:none;">
-
         <div class="operator-modal-content">
-
             <button class="modal-close" onclick="operatorEkleModalKapat()">×</button>
 
             <h2>Yeni Operatör Ekle</h2>
@@ -193,9 +192,15 @@
             <button class="save-btn" onclick="operatorEkle()">
                 Operatör Kaydet
             </button>
-
         </div>
+    </div>
 
+    <!-- Operatör detay modalı -->
+    <div id="operatorDetayModal" class="operator-modal" style="display:none;">
+        <div class="operator-modal-content">
+            <button class="modal-close" onclick="operatorDetayKapat()">×</button>
+            <div id="operatorDetayIcerik"></div>
+        </div>
     </div>
 
 </section>
@@ -236,7 +241,7 @@
 
 
     <!-- YETKİNLİK PANEL -->
-   <section id="yetkinlikPanel" class="page" style="display:none;">
+    <section id="yetkinlikPanel" class="page" style="display:none;">
 
     <div class="operator-page-header">
         <h2>Yetkinlik / Eğitim Yönetimi</h2>
@@ -298,52 +303,6 @@
         </div>
 
     </div>
-
-</section>
-    <!-- YETKİLİ PANEL -->
-    <section id="yetkiliPanel" class="page" style="display:none;">
-        <div class="panel-card">
-            <h2>Yetkili & Sistem Yetkileri</h2>
-            <div class="grid-2">
-                <div class="card">
-                    <h3>Yeni Yetkili Ekle</h3>
-                    <p style="font-size: 13px; color: #64748b; margin-bottom: 15px;">Sisteme giriş yapabilecek veya seviye yükseltmeyi onaylayacak kişileri tanımlayın.</p>
-                    <input type="text" id="yeniYetkiliSicil" placeholder="Sicil No" required>
-                    <input type="text" id="yeniYetkiliAd" placeholder="Ad Soyad" required>
-                    <input type="text" id="yeniYetkiliUnvan" placeholder="Ünvan (Amir, Şef vb.)" required>
-                    <input type="password" id="yeniYetkiliPin" placeholder="Onay PIN Kodu" required>
-                    
-                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
-                        <input type="checkbox" id="yeniYetkiliCanManage" style="width: 20px; height: 20px; margin: 0;">
-                        <strong>Yönetici Yetkisi (Panel Giriş İzni)</strong>
-                    </label>
-                    
-                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer;">
-                        <input type="checkbox" id="yeniYetkiliCanAccessOperators" style="width: 20px; height: 20px; margin: 0;">
-                        Operatör Yönetimi Paneli Erişimi
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer;">
-                        <input type="checkbox" id="yeniYetkiliCanAccessKalip" style="width: 20px; height: 20px; margin: 0;">
-                        Kalıp Yönetimi Paneli Erişimi
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer;">
-                        <input type="checkbox" id="yeniYetkiliCanAccessYetkinlik" style="width: 20px; height: 20px; margin: 0;">
-                        Yetkinlik / Eğitim Paneli Erişimi
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
-                        <input type="checkbox" id="yeniYetkiliCanAccessYetkili" style="width: 20px; height: 20px; margin: 0;">
-                        Yetkili / Yetki Yönetimi Paneli Erişimi
-                    </label>
-                    
-                    <button onclick="yetkiliEkle()" style="width: 100%;">Yetkiliyi Kaydet</button>
-                </div>
-                <div class="card">
-                    <h3>Tanımlı Yetkililer</h3>
-                    <div id="yetkiliListesi"></div>
-                </div>
-            </div>
-        </div>
-    </section>
 
 </section>
 
