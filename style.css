@@ -627,12 +627,12 @@ body {
 
 .operator-modal-content {
     background: white;
-    border-radius: 24px;
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-    max-width: 650px;
-    width: 100%;
+    width: min(1100px, 96vw);
+    max-height: 88vh;
+    overflow-y: auto;
+    border-radius: 28px;
     padding: 30px;
-    animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
 }
 
 @keyframes modalPop {
@@ -826,14 +826,25 @@ body {
 ========================= */
 
 .seviye-badge {
-    padding: 14px 18px !important;
-    border-radius: 16px !important;
-    font-weight: 800 !important;
-    letter-spacing: 0.4px !important;
-    text-align: center !important;
-    color: white !important;
-    box-shadow: 0 10px 24px rgba(0,0,0,0.14) !important;
-    border: none !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 10px 18px;
+    margin-top: 8px;
+    margin-bottom: 18px;
+
+    min-height: 42px;
+    width: auto;
+    max-width: 420px;
+
+    border-radius: 14px;
+
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+
+    box-shadow: 0 8px 18px rgba(0,0,0,0.12);
 }
 
 /* SEVİYE 1 */
@@ -1099,7 +1110,25 @@ body {
     }
 
     .operator-detail-header {
-        flex-direction: column;
-        text-align: center;
-    }
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+}
+/* OPERATÖR DETAY FOTOĞRAFI */
+
+.operator-detail-photo {
+    width: 110px !important;
+    height: 110px !important;
+    border-radius: 22px !important;
+    object-fit: cover !important;
+    box-shadow: 0 12px 24px rgba(13,44,84,0.18) !important;
+    flex-shrink: 0 !important;
+}
+.operator-detail-content p {
+    margin-bottom: 6px;
+    font-size: 18px;
+    font-weight: 600;
 }
