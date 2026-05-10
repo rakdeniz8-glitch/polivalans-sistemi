@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Galsan Polivalans Yönetim Sistemi</title>
+    <link rel="stylesheet" href="style.css?v=20">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <style>
+        .main-search-button:hover {
+            background-color: #08244d !important;
+            color: white !important;
+            cursor: pointer;
+        }
+        #loginBtn:hover {
+            background-color: #08244d !important;
+            color: white !important;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+<section id="mainSystem">
+
+    <!-- ÜST LOGO / MENÜ -->
+    <header class="galsan-header">
+        <div class="brand-area">
+            <div class="brand-logo">
+    <img src="glogo.png" alt="Galsan Logo">
+</div>
+
+            
+
+            <div class="brand-divider"></div>
+
+            <div class="system-title">
+                POLİVALANS<br>
+                YÖNETİM SİSTEMİ
+            </div>
+        </div>
+
+        <!-- TARİH VE VARDİYA BİLGİSİ -->
+
+        <div class="menu-area" style="display: flex; align-items: center; gap: 10px;">
+            <!-- MENÜ BUTONU (Giriş yapınca görünecek) -->
+            <button id="mainMenuBtn" class="menu-button" onclick="menuAcKapat()" style="display: none; height: 42px; box-sizing: border-box; align-items: center; justify-content: center; gap: 8px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                <span>Menü</span>
+            </button>
+
+            <!-- GİRİŞ YAPAN KULLANICI BİLGİSİ (Butonun yerine gelecek) -->
+            <div id="userInfo" style="display: none; align-items: center; gap: 15px; background: rgba(8, 36, 77, 0.05); padding: 0 15px; height: 42px; border-radius: 50px; color: #08244d; font-weight: 600; font-size: 13px; border: 1px solid rgba(8, 36, 77, 0.1); box-sizing: border-box;"></div>
+
+            <!-- GİRİŞ YAP BUTONU -->
+            
+            <button id="loginBtn" class="menu-button" onclick="adminGirisModalAc()" style="background: transparent; color: #08244d; border: 2px solid #08244d; white-space: nowrap; height: 42px; box-sizing: border-box; font-weight: 700; transition: all 0.3s ease; display: inline-flex; align-items: center; justify-content: center; padding: 0 20px; border-radius: 50px; line-height: 1; gap: 8px;">
+                🔑 Giriş Yap
+            </button>
+
+            <div id="dropdownMenu" class="dropdown-menu">
+                <button onclick="sayfaAc('anaEkran')">Ana Ekran</button>
+                <button id="menu-operatorPanel" onclick="sayfaAc('operatorPanel')" style="display: none;">Operatör Yönetimi</button>
+                <button id="menu-kalipPanel" onclick="sayfaAc('kalipPanel')" style="display: none;">Kalıp Yönetimi</button>
+                <button id="menu-yetkinlikPanel" onclick="sayfaAc('yetkinlikPanel')" style="display: none;">Yetkinlik / Eğitim</button>
+                <button id="menu-yetkiliPanel" onclick="sayfaAc('yetkiliPanel')" style="display: none;">Yetkili / Yetki Yönetimi</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- SAĞ ALT TARİH VE VARDİYA BİLGİSİ -->
+    <div id="headerDate" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; background: transparent; padding: 10px 15px; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; pointer-events: none;"></div>
+
+
+    <!-- ANA EKRAN -->
+    <section id="anaEkran" class="page active-page">
+
+        <!-- SOL ALT KÖŞE LOGO -->
+        <div style="position: fixed; bottom: 20px; left: 20px; z-index: 1000; pointer-events: none;">
+            <img src="glogo1.png" alt="Galsan 50. Yıl" style="height: 75px; object-fit: contain; opacity: 0.7;">
+        </div>
+
+        <div class="motto-cards">
+
+            <div class="motto-card active">
+                <div class="motto-icon">
+    <img src="guvenilir.png">
+</div>
+                <h3>GÜVENİLİR</h3>
+                <p>Yönetim, üretim ve hizmet anlayışında güven</p>
+            </div>
+
+            <div class="motto-card">
+                <div class="motto-icon">
+    <img src="yetkin.png">
+</div>
+                <h3>YETKİN</h3>
+                <p>Deneyim, bilgi ve teknoloji ile gelişim</p>
+            </div>
+
+            <div class="motto-card">
+                <div class="motto-icon">
+    <img src="yenilikci.png">
+</div>
+                <h3>YENİLİKÇİ</h3>
+                <p>Yeni fikirlere açık ve katma değer yaratan</p>
+            </div>
+
+        </div>
+
+
+        <!-- ARAMA PANELİ -->
+        <div class="main-search-panel">
+
+            <div class="search-info">
+                <div class="search-icon">🔎</div>
+
+                <div>
+                    <h2>KALIP OPERATÖR ARAMA</h2>
+                    <p>Kalıp kodu yazarak uygun operatörleri listeleyin.</p>
+                </div>
+            </div>
+
+            <div class="search-row">
+
+                <div class="autocomplete-box">
+                    <input 
+                        type="text"
+                        id="mainKalipSearch"
+                        placeholder="Kalıp kodu veya adı yazın..."
+                        oninput="mainKalipAutocomplete()"
+                        onkeyup="if(event.key === 'Enter') kalipOperatorleriniGetir()">
+
+                    <div 
+                        id="mainKalipOneriListesi"
+                        class="autocomplete-list">
+                    </div>
+                </div>
+
+                <input type="hidden" id="mainSelectedKalip">
+
+                <button 
+                    class="main-search-button"
+                    onclick="kalipOperatorleriniGetir()">
+                    → ARA
+                </button>
+
+            </div>
+
+        </div>
+
+        <div id="operatorSonuclari" class="operator-result-grid"></div>
+
+    </section>
+
+
+    <!-- OPERATÖR PANEL -->
+<section id="operatorPanel" class="page" style="display:none;">
+
+    <div class="operator-page-header">
+        <h2>Operatör Yönetimi</h2>
+
+        <button class="new-operator-btn" onclick="operatorEkleModalAc()">
+            + Yeni Operatör Ekle
+        </button>
+    </div>
+
+    <div class="panel-card">
+        <h2>Kayıtlı Operatörler</h2>
+
+        <input 
+            type="text"
+            id="operatorArama"
+            placeholder="Sicil veya isim ara..."
+            onkeyup="operatorleriGoster()">
+
+        <div id="operatorListesi"></div>
+    </div>
+
+    <div id="operatorEkleModal" class="operator-modal" style="display:none;">
+
+        <div class="operator-modal-content">
+
+            <button class="modal-close" onclick="operatorEkleModalKapat()">×</button>
+
+            <h2>Yeni Operatör Ekle</h2>
+
+            <input type="text" id="operatorSicil" placeholder="Sicil No">
+            <input type="text" id="operatorAdSoyad" placeholder="Ad Soyad">
+            <input type="text" id="operatorUnvan" placeholder="Ünvan">
+            <input type="file" id="operatorResim" accept="image/*">
+
+            <button class="save-btn" onclick="operatorEkle()">
+                Operatör Kaydet
+            </button>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+    <!-- KALIP PANEL -->
+    <section id="kalipPanel" class="page" style="display:none;">
+
+        <div class="panel-card">
+            <h2>Kalıp Yönetimi</h2>
+
+            <input type="text" id="kalipKodu" placeholder="Kalıp Kodu" required>
+            <input type="text" id="kalipAdi" placeholder="Kalıp Adı" required>
+
+            <button onclick="kalipEkle()">Kalıp Ekle</button>
+
+            <hr>
+
+            <h3>Toplu Kalıp Ekle</h3>
+            <textarea id="topluKalip" rows="5" placeholder="Örn: 3001;Kalıp Adı (Her satıra bir adet)"></textarea>
+
+            <button onclick="topluKalipEkle()">Toplu Kalıp Ekle</button>
+        </div>
+
+        <div class="panel-card">
+            <h2>Kayıtlı Kalıplar</h2>
+
+            <input 
+                type="text"
+                id="kalipArama"
+                placeholder="Kalıp ara..."
+                onkeyup="kaliplariGoster()">
+
+            <div id="kalipListesi"></div>
+        </div>
+
+    </section>
+
+
+    <!-- YETKİNLİK PANEL -->
+    <section id="yetkinlikPanel" class="page" style="display:none;">
+
+        <div class="panel-card">
+            <h2>Yetkinlik Tanımla</h2>
+
+            <div class="autocomplete-box">
+                <input 
+                    type="text"
+                    id="operatorSearch"
+                    placeholder="Sicil ile operatör ara..."
+                    oninput="operatorAutocomplete()">
+
+                <div id="operatorOneriListesi" class="autocomplete-list"></div>
+            </div>
+
+            <input type="hidden" id="yetkinlikOperator">
+
+            <div class="autocomplete-box">
+                <input 
+                    type="text"
+                    id="kalipSearch"
+                    placeholder="Kalıp ara..."
+                    oninput="kalipAutocomplete()">
+
+                <div id="kalipOneriListesi" class="autocomplete-list"></div>
+            </div>
+
+            <input type="hidden" id="yetkinlikKalip">
+
+            <select id="yetkinlikSeviye" required>
+                <option value="" disabled selected>Seviye Seçiniz...</option>
+                <option value="1">Seviye 1 - Operatör prosesinde çalışma talimatlarını tanıyor ve uygulamasını biliyor.</option>
+                <option value="2">Seviye 2 - Operatör çalışma sırasında işini kontrollü yapar.</option>
+                <option value="3">Seviye 3 - Operatör çalışma alanında bağımsızdır ve hakimdir.</option>
+                <option value="4">Seviye 4 - Operatör bildiklerini diğer operatörlere iletebilir.</option>
+            </select>
+
+            <button onclick="yetkinlikEkle()">Yetkinlik Kaydet</button>
+        </div>
+
+        <div class="panel-card">
+            <h2>Kayıtlı Yetkinlikler</h2>
+            <div id="yetkinlikListesi"></div>
+        </div>
+
+    </section>
+
+    <!-- YETKİLİ PANEL -->
+    <section id="yetkiliPanel" class="page" style="display:none;">
+        <div class="panel-card">
+            <h2>Yetkili & Sistem Yetkileri</h2>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Yeni Yetkili Ekle</h3>
+                    <p style="font-size: 13px; color: #64748b; margin-bottom: 15px;">Sisteme giriş yapabilecek veya seviye yükseltmeyi onaylayacak kişileri tanımlayın.</p>
+                    <input type="text" id="yeniYetkiliSicil" placeholder="Sicil No" required>
+                    <input type="text" id="yeniYetkiliAd" placeholder="Ad Soyad" required>
+                    <input type="text" id="yeniYetkiliUnvan" placeholder="Ünvan (Amir, Şef vb.)" required>
+                    <input type="password" id="yeniYetkiliPin" placeholder="Onay PIN Kodu" required>
+                    
+                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
+                        <input type="checkbox" id="yeniYetkiliCanManage" style="width: 20px; height: 20px; margin: 0;">
+                        <strong>Yönetici Yetkisi (Panel Giriş İzni)</strong>
+                    </label>
+                    
+                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer;">
+                        <input type="checkbox" id="yeniYetkiliCanAccessOperators" style="width: 20px; height: 20px; margin: 0;">
+                        Operatör Yönetimi Paneli Erişimi
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer;">
+                        <input type="checkbox" id="yeniYetkiliCanAccessKalip" style="width: 20px; height: 20px; margin: 0;">
+                        Kalıp Yönetimi Paneli Erişimi
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer;">
+                        <input type="checkbox" id="yeniYetkiliCanAccessYetkinlik" style="width: 20px; height: 20px; margin: 0;">
+                        Yetkinlik / Eğitim Paneli Erişimi
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
+                        <input type="checkbox" id="yeniYetkiliCanAccessYetkili" style="width: 20px; height: 20px; margin: 0;">
+                        Yetkili / Yetki Yönetimi Paneli Erişimi
+                    </label>
+                    
+                    <button onclick="yetkiliEkle()" style="width: 100%;">Yetkiliyi Kaydet</button>
+                </div>
+                <div class="card">
+                    <h3>Tanımlı Yetkililer</h3>
+                    <div id="yetkiliListesi"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</section>
+
+<!-- Yönetici Giriş Modalı -->
+<div id="adminGirisModal" class="operator-modal" style="display:none;">
+    <div class="operator-modal-content" style="max-width: 400px; text-align: center;">
+        <h2 style="color: #08244d; margin-bottom: 10px;">Kullanıcı Girişi</h2>
+        <p style="color: #64748b; margin-bottom: 20px; font-size: 14px;">Lütfen kullanıcı bilgilerinizi giriniz.</p>
+        
+        <input type="text" id="adminSicil" placeholder="Sicil No" 
+               style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd;"
+               onkeyup="if(event.key === 'Enter') document.getElementById('adminPin').focus()">
+        
+        <input type="password" id="adminPin" placeholder="PIN Kodu" 
+               style="width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #ddd;"
+               onkeyup="if(event.key === 'Enter') adminGirisYap()">
+        
+        <div style="display: flex; gap: 10px;">
+            <button onclick="adminGirisYap()" class="save-btn" style="flex: 1;">Giriş Yap</button>
+            <button onclick="adminGirisModalKapat()" class="delete-btn" style="flex: 1;">Vazgeç</button>
+        </div>
+    </div>
+</div>
+
+<!-- Seviye Yükseltme Modalı (Eğer henüz ekli değilse) -->
+<div id="seviyeYukseltModal" class="operator-modal" style="display:none;">
+    <div id="seviyeYukseltIcerik" class="operator-modal-content">
+        <!-- İçerik JavaScript tarafından dinamik doldurulacak -->
+    </div>
+</div>
+
+<!-- Yetkili Düzenleme Modalı -->
+<div id="yetkiliDuzenleModal" class="operator-modal" style="display:none;">
+    <div class="operator-modal-content" style="max-width: 500px;">
+        <button class="modal-close" onclick="yetkiliDuzenleModalKapat()">×</button>
+        <h2 style="color: #08244d; margin-bottom: 20px;">Yetkili Düzenle</h2>
+        
+        <input type="hidden" id="editYetkiliId">
+        <input type="text" id="editYetkiliSicil" placeholder="Sicil No" style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd;">
+        <input type="text" id="editYetkiliAd" placeholder="Ad Soyad" style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd;">
+        <input type="text" id="editYetkiliUnvan" placeholder="Ünvan" style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd;">
+        <input type="password" id="editYetkiliPin" placeholder="PIN Kodu (Değiştirmek istemiyorsanız boş bırakın)" style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ddd;">
+        
+        <div style="text-align: left; margin-bottom: 20px;">
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer;">
+                <input type="checkbox" id="editYetkiliCanManage" style="width: 18px; height: 18px;"> <strong>Yönetici Yetkisi</strong>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px; cursor: pointer;">
+                <input type="checkbox" id="editYetkiliCanAccessOperators" style="width: 18px; height: 18px;"> Operatör Yönetimi
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px; cursor: pointer;">
+                <input type="checkbox" id="editYetkiliCanAccessKalip" style="width: 18px; height: 18px;"> Kalıp Yönetimi
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px; cursor: pointer;">
+                <input type="checkbox" id="editYetkiliCanAccessYetkinlik" style="width: 18px; height: 18px;"> Yetkinlik / Eğitim
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px; cursor: pointer;">
+                <input type="checkbox" id="editYetkiliCanAccessYetkili" style="width: 18px; height: 18px;"> Yetkili Yönetimi
+            </label>
+        </div>
+
+        <button onclick="yetkiliGuncelle()" class="save-btn" style="width: 100%;">Değişiklikleri Kaydet</button>
+    </div>
+</div>
+
+<script src="script.js?v=20"></script>
+
+</body>
+</html>
