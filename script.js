@@ -633,6 +633,7 @@ async function yetkinlikEkle() {
     }
 
     alert("Yetkinlik kaydedildi / güncellendi.");
+   yetkinlikModalKapat();
 
     ekraniYenile();
 }
@@ -1865,4 +1866,15 @@ function operatorEkleModalAc() {
 
 function operatorEkleModalKapat() {
     document.getElementById("operatorEkleModal").style.display = "none";
+}
+/* =========================
+   YETKİNLİK MODAL
+========================= */
+
+function yetkinlikModalAc() {
+    document.getElementById("yetkinlikModal").style.display = "flex";
+}
+
+function yetkinlikModalKapat() {
+    document.getElementById("yetkinlikModal").style.display = "none";
 }
