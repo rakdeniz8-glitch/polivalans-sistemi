@@ -236,10 +236,28 @@
 
 
     <!-- YETKİNLİK PANEL -->
-    <section id="yetkinlikPanel" class="page" style="display:none;">
+   <section id="yetkinlikPanel" class="page" style="display:none;">
 
-        <div class="panel-card">
-            <h2>Yetkinlik Tanımla</h2>
+    <div class="operator-page-header">
+        <h2>Yetkinlik / Eğitim Yönetimi</h2>
+
+        <button class="new-operator-btn" onclick="yetkinlikModalAc()">
+            + Yeni Yetkinlik Tanımla
+        </button>
+    </div>
+
+    <div class="panel-card">
+        <h2>Kayıtlı Yetkinlikler</h2>
+        <div id="yetkinlikListesi"></div>
+    </div>
+
+    <div id="yetkinlikModal" class="operator-modal" style="display:none;">
+
+        <div class="operator-modal-content">
+
+            <button class="modal-close" onclick="yetkinlikModalKapat()">×</button>
+
+            <h2>Yeni Yetkinlik Tanımla</h2>
 
             <div class="autocomplete-box">
                 <input 
@@ -265,24 +283,23 @@
 
             <input type="hidden" id="yetkinlikKalip">
 
-            <select id="yetkinlikSeviye" required>
-                <option value="" disabled selected>Seviye Seçiniz...</option>
+            <select id="yetkinlikSeviye">
+                <option value="">Seviye Seç</option>
                 <option value="1">Seviye 1 - Operatör prosesinde çalışma talimatlarını tanıyor ve uygulamasını biliyor.</option>
                 <option value="2">Seviye 2 - Operatör çalışma sırasında işini kontrollü yapar.</option>
                 <option value="3">Seviye 3 - Operatör çalışma alanında bağımsızdır ve hakimdir.</option>
                 <option value="4">Seviye 4 - Operatör bildiklerini diğer operatörlere iletebilir.</option>
             </select>
 
-            <button onclick="yetkinlikEkle()">Yetkinlik Kaydet</button>
+            <button class="save-btn" onclick="yetkinlikEkle()">
+                Yetkinlik Kaydet
+            </button>
+
         </div>
 
-        <div class="panel-card">
-            <h2>Kayıtlı Yetkinlikler</h2>
-            <div id="yetkinlikListesi"></div>
-        </div>
+    </div>
 
-    </section>
-
+</section>
     <!-- YETKİLİ PANEL -->
     <section id="yetkiliPanel" class="page" style="display:none;">
         <div class="panel-card">
