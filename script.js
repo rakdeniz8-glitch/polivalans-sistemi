@@ -633,8 +633,7 @@ async function yetkinlikEkle() {
     }
 
     alert("Yetkinlik kaydedildi / güncellendi.");
-   yetkinlikModalKapat();
-
+yetkinlikModalKapat();
     ekraniYenile();
 }
 
