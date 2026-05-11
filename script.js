@@ -23,8 +23,8 @@ window.onload = async function () {
 
     document.getElementById("mainSystem").style.display = "block";
 
-    const sonSayfa = localStorage.getItem("aktifSayfa") || "anaEkran"; // Varsayılan olarak anaEkran'ı aç
-    sayfaAc(sonSayfa);
+    // Uygulama her açıldığında varsayılan olarak anaEkran'ın gelmesini sağlıyoruz.
+    sayfaAc("anaEkran");
     oturumBilgisiGuncelle();
     menuYetkileriniUygula();
     tarihVardiyaGuncelle();
@@ -614,27 +614,11 @@ async function yetkinlikEkle() {
         return;
     }
 
-    const { error } = await supabaseClient
-        .from("skills")
-        .upsert([
-            {
-                operator_id: operatorId,
-                operation_id: kalipId,
-                seviye: seviye
-            }
-        ], {
-            onConflict: "operator_id,operation_id"
-        });
+    let operatorAd = document.getElementById("operatorSearch").value;
+    let kalipAd = document.getElementById("kalipSearch").value;
 
-    if (error) {
-        console.log(error);
-        alert("Yetkinlik kaydedilemedi: " + error.message);
-        return;
-    }
-
-    alert("Yetkinlik kaydedildi / güncellendi.");
-yetkinlikModalKapat();
-    ekraniYenile();
+    // Doğrudan kaydetmek yerine imza modalını açıyoruz
+    signatureModalAc(null, operatorId, kalipId, seviye, operatorAd, kalipAd, "NEW");
 }
 
 /* =========================
@@ -975,7 +959,12 @@ function sayfaAc(sayfaId) {
         "operatorPanel": "can_access_operators",
         "kalipPanel": "can_access_kalip",
         "yetkinlikPanel": "can_access_yetkinlik",
-        "yetkiliPanel": "can_access_yetkili"
+        "yetkiliPanel": "can_access_yetkili",
+        // index.html üzerindeki sayfa ID'leri için de tanımlama ekleyelim (opsiyonel)
+        "operatorYonetimi": "can_access_operators",
+        "kalipYonetimi": "can_access_kalip",
+        "yetkinlikYonetimi": "can_access_yetkinlik",
+        "yetkiliYonetimi": "can_access_yetkili"
     };
 
     if (sayfaId !== "anaEkran") {
@@ -1061,7 +1050,6 @@ async function kalipOperatorleriniGetir() {
     sonuc.innerHTML = "";
 
     if (!kalipId) {
-        sonuc.innerHTML = `<div class="panel-card">Lütfen listeden bir kalıp seç.</div>`;
         return;
     }
 
@@ -1352,6 +1340,12 @@ async function seviyeYukseltModalAc(skillId, operatorId, operationId, mevcutSevi
     let hedefSeviye = Number(mevcutSeviye) + 1;
     let modal = document.getElementById("seviyeYukseltModal");
 
+    // Operatör ve Kalıp isimlerini bellekten bul (İmza modalında göstermek için)
+    let op = tumOperatorler.find(o => o.id === operatorId);
+    let klp = tumKaliplar.find(k => k.id === operationId);
+    let opName = op ? op.ad_soyad : "Bilinmiyor";
+    let klpName = klp ? klp.operasyon_adi : "Bilinmiyor";
+
     // Eğer modal HTML'de yoksa, otomatik olarak oluştur (Sistemin çökmesini engeller)
     if (!modal) {
         modal = document.createElement("div");
@@ -1400,7 +1394,7 @@ async function seviyeYukseltModalAc(skillId, operatorId, operationId, mevcutSevi
                    style="width: 240px; text-align: center; font-size: 14px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 10px; margin-bottom: 0;">
         </div>
         <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
-            <button class="save-btn" onclick="seviyeYukseltKaydet(${skillId}, ${hedefSeviye}, ${operatorId}, ${operationId})">
+            <button class="save-btn" onclick="seviyeYukseltKaydet(${skillId}, ${hedefSeviye}, ${operatorId}, ${operationId}, '${opName}', '${klpName}')">
                 Doğrula ve Seviye Atlat
             </button>
             <button class="delete-btn" onclick="seviyeYukseltModalKapat()">
@@ -1413,7 +1407,7 @@ async function seviyeYukseltModalAc(skillId, operatorId, operationId, mevcutSevi
     modal.style.display = "flex"; // İçerik dolduktan sonra göster
 }
 
-async function seviyeYukseltKaydet(skillId, yeniSeviye, operatorId, operationId) {
+async function seviyeYukseltKaydet(skillId, yeniSeviye, operatorId, operationId, operatorAd, kalipAd) {
     let checks = document.querySelectorAll(".checklist-check");
     let hepsiSecili = true;
 
@@ -1445,41 +1439,9 @@ async function seviyeYukseltKaydet(skillId, yeniSeviye, operatorId, operationId)
         return;
     }
 
-    let yetkiliAdi = authorizer.ad_soyad;
-
-    // 1. Yetkinlik Seviyesini Güncelle
-    const { error: updateError } = await supabaseClient
-        .from("skills")
-        .update({ seviye: yeniSeviye })
-        .eq("id", skillId);
-
-    if (updateError) {
-        console.log(updateError);
-        alert("Güncelleme hatası: " + updateError.message);
-        return;
-    }
-
-    // 2. İşlemi Log Tablosuna Kaydet
-    const { error: logError } = await supabaseClient
-        .from("skill_logs")
-        .insert([{
-            skill_id: skillId,
-            operator_id: operatorId,
-            operation_id: operationId,
-            old_seviye: yeniSeviye - 1,
-            new_seviye: yeniSeviye,
-            authorizer: yetkiliAdi
-        }]);
-
-    if (logError) console.error("Log kaydı oluşturulamadı:", logError);
-
-    alert("Tebrikler! Yetkinlik seviyesi başarıyla yükseltildi.");
+    // Yetkili PIN'i doğruysa, checklist tamsa şimdi operatörden imza alıyoruz
     seviyeYukseltModalKapat();
-    
-    // Tüm ekranları ve aktif arama sonuçlarını tazele
-    ekraniYenile(); 
-    kalipOperatorleriniGetir(); 
-    kalibaGoreOperatorAra();
+    signatureModalAc(skillId, operatorId, operationId, yeniSeviye, operatorAd, kalipAd, "UPGRADE", authorizer.ad_soyad);
 }
 
 function seviyeYukseltModalKapat() {
@@ -1876,4 +1838,220 @@ function yetkinlikModalAc() {
 
 function yetkinlikModalKapat() {
     document.getElementById("yetkinlikModal").style.display = "none";
+}
+/* =========================
+   İMZA SİSTEMİ
+========================= */
+
+let signatureCanvas;
+let signatureCtx;
+
+let drawing = false;
+
+let aktifSignatureData = null;
+
+/* MODAL AÇ */
+
+function signatureModalAc(skillId, operatorId, operationId, seviye, operatorAdi, kalipAdi, context, authorizerName = "") {
+
+    aktifSignatureData = {
+        skillId,
+        operatorId,
+        operationId,
+        seviye,
+        context, // "NEW" veya "UPGRADE"
+        authorizerName
+    };
+
+    document.getElementById("signatureInfo").innerHTML = `
+        <strong>Operatör:</strong> ${operatorAdi}<br>
+        <strong>Kalıp:</strong> ${kalipAdi}<br>
+        <strong>Yeni Seviye:</strong> ${seviye}
+    `;
+
+    document.getElementById("signatureModal").style.display = "flex";
+
+    setTimeout(initSignatureCanvas, 100);
+}
+
+/* MODAL KAPAT */
+
+function signatureModalKapat() {
+    document.getElementById("signatureModal").style.display = "none";
+}
+
+/* CANVAS */
+
+function initSignatureCanvas() {
+
+    signatureCanvas = document.getElementById("signatureCanvas");
+
+    signatureCtx = signatureCanvas.getContext("2d");
+
+    signatureCanvas.width = signatureCanvas.offsetWidth;
+    signatureCanvas.height = signatureCanvas.offsetHeight;
+
+    signatureCtx.strokeStyle = "#08244d";
+    signatureCtx.lineWidth = 3;
+    signatureCtx.lineCap = "round";
+
+    /* MOUSE */
+
+    signatureCanvas.onmousedown = startDraw;
+    signatureCanvas.onmouseup = stopDraw;
+    signatureCanvas.onmousemove = draw;
+
+    /* TOUCH */
+
+    signatureCanvas.ontouchstart = touchStart;
+    signatureCanvas.ontouchend = stopDraw;
+    signatureCanvas.ontouchmove = touchDraw;
+}
+
+function startDraw(e) {
+    drawing = true;
+
+    signatureCtx.beginPath();
+
+    signatureCtx.moveTo(
+        e.offsetX,
+        e.offsetY
+    );
+}
+
+function draw(e) {
+
+    if (!drawing) return;
+
+    signatureCtx.lineTo(
+        e.offsetX,
+        e.offsetY
+    );
+
+    signatureCtx.stroke();
+}
+
+function stopDraw() {
+    drawing = false;
+}
+
+/* TOUCH */
+
+function touchStart(e) {
+
+    e.preventDefault();
+
+    drawing = true;
+
+    const rect = signatureCanvas.getBoundingClientRect();
+
+    const touch = e.touches[0];
+
+    signatureCtx.beginPath();
+
+    signatureCtx.moveTo(
+        touch.clientX - rect.left,
+        touch.clientY - rect.top
+    );
+}
+
+function touchDraw(e) {
+
+    e.preventDefault();
+
+    if (!drawing) return;
+
+    const rect = signatureCanvas.getBoundingClientRect();
+
+    const touch = e.touches[0];
+
+    signatureCtx.lineTo(
+        touch.clientX - rect.left,
+        touch.clientY - rect.top
+    );
+
+    signatureCtx.stroke();
+}
+
+/* TEMİZLE */
+
+function signatureTemizle() {
+
+    signatureCtx.clearRect(
+        0,
+        0,
+        signatureCanvas.width,
+        signatureCanvas.height
+    );
+}
+
+/* KAYDET */
+
+async function signatureKaydet() {
+    const imageData = signatureCanvas.toDataURL("image/png");
+    let currentSkillId = aktifSignatureData.skillId;
+
+    try {
+        // 1. Önce Yetkinlik Tablosunu Güncelle/Ekle (Skill ID almak için)
+        if (aktifSignatureData.context === "NEW") {
+            const { data, error: skillError } = await supabaseClient
+                .from("skills")
+                .upsert([
+                    {
+                        operator_id: aktifSignatureData.operatorId,
+                        operation_id: aktifSignatureData.operationId,
+                        seviye: aktifSignatureData.seviye
+                    }
+                ], { onConflict: "operator_id,operation_id" })
+                .select();
+
+            if (skillError) throw skillError;
+            if (data && data.length > 0) currentSkillId = data[0].id;
+
+        } else if (aktifSignatureData.context === "UPGRADE") {
+            const { error: updateError } = await supabaseClient
+                .from("skills")
+                .update({ seviye: aktifSignatureData.seviye })
+                .eq("id", aktifSignatureData.skillId);
+
+            if (updateError) throw updateError;
+
+            // Seviye yükseltme ise log kaydı oluştur
+            await supabaseClient.from("skill_logs").insert([{
+                skill_id: aktifSignatureData.skillId,
+                operator_id: aktifSignatureData.operatorId,
+                operation_id: aktifSignatureData.operationId,
+                old_seviye: aktifSignatureData.seviye - 1,
+                new_seviye: aktifSignatureData.seviye,
+                authorizer: aktifSignatureData.authorizerName
+            }]);
+        }
+
+        // 2. İmzayı ve Onay Metnini Kaydet
+        const { error: sigError } = await supabaseClient
+            .from("training_signatures")
+            .insert([{
+                skill_id: currentSkillId,
+                operator_id: aktifSignatureData.operatorId,
+                operation_id: aktifSignatureData.operationId,
+                seviye: aktifSignatureData.seviye,
+                signature_image: imageData,
+                confirmation_text: "Bu eğitimi aldığımı, anladığımı ve belirtilen seviyede çalışacağımı kabul ederim."
+            }]);
+
+        if (sigError) throw sigError;
+
+        alert("İşlem başarıyla tamamlandı, eğitim onayı ve imza kaydedildi.");
+        signatureModalKapat();
+        
+        // Eğer açık modal varsa kapat ve listeleri tazele
+        if (document.getElementById("yetkinlikModal")) yetkinlikModalKapat();
+        ekraniYenile();
+        if (typeof kalipOperatorleriniGetir === "function") kalipOperatorleriniGetir();
+        if (typeof kalibaGoreOperatorAra === "function") kalibaGoreOperatorAra();
+
+    } catch (err) {
+        console.error("Kayıt Hatası:", err);
+        alert("İşlem sırasında bir hata oluştu: " + (err.message || "Veritabanı hatası"));
+    }
 }
