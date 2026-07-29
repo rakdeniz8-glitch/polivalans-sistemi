@@ -373,6 +373,7 @@ body {
     font-family: Arial, sans-serif;
     background: #f4f6fa;
     color: #08244d;
+    overflow-x: hidden;
 }
 
 /* HEADER */
@@ -980,6 +981,33 @@ body {
     select,
     textarea {
         font-size: 16px !important;
+    }
+
+    /* Otomatik tamamlama (kalıp/operatör arama) kutusu masaüstünde 3 kart
+       yan yana sığsın diye 800px'e sabitlenmişti. Mobilde bu, kutunun ekran
+       dışına taşmasına ve önerilere hiç dokunulamamasına yol açıyordu
+       (ana ekran arama, yetkinlik tanımlama gibi temel akışları kilitliyordu). */
+    .autocomplete-list {
+        min-width: 100% !important;
+        width: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        grid-template-columns: 1fr !important;
+        padding: 10px !important;
+        max-height: 60vh !important;
+    }
+
+    .autocomplete-item {
+        flex-direction: row !important;
+        text-align: left !important;
+        padding: 12px !important;
+    }
+
+    .autocomplete-item img {
+        width: 48px !important;
+        height: 48px !important;
+        margin-bottom: 0 !important;
+        margin-right: 12px !important;
     }
 
     .galsan-header {

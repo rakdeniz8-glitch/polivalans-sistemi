@@ -18,7 +18,14 @@ const SESSION_TIMEOUT_MS = 10 * 60 * 1000; // 10 Dakika
 ========================= */
 
 window.onload = async function () {
-    await Promise.all([kaliplariBellegeAl(), operatorleriBellegeAl()]);
+    // Kalıp/operatör/yetkinlik verileri uygulama açılışında bir kere, paralel
+    // olarak çekiliyor; ana ekrandaki arama ve panel geçişleri bu bellekteki
+    // veriyi kullandığı için artık her tıklamada veritabanına gitmiyor.
+    await Promise.all([
+        kaliplariBellegeAl(),
+        operatorleriBellegeAl(),
+        yetkinlikleriBellegeAl()
+    ]);
 
     document.getElementById("mainSystem").style.display = "block";
 
@@ -33,53 +40,61 @@ window.onload = async function () {
 };
 
 /* =========================
-   SEKME AÇ
-========================= */
-
-// Bu fonksiyon artık kullanılmıyor, sayfaAc fonksiyonu tüm sayfa geçişlerini yönetiyor.
-// function tabAc(tabId) {
-//     let pages = document.getElementsByClassName("page");
-
-//     for (let i = 0; i < pages.length; i++) {
-//         pages[i].classList.remove("active");
-//     }
-
-//     document.getElementById(tabId).classList.add("active");
-//     ekraniYenile();
-// }
-
-/* =========================
    GENEL YENİLEME
-   Not: Her sayfa geçişinde TÜM tabloları yeniden çekmek
-   (operatörler + kalıplar + yetkililer + yetkinlikler) sayfa açılışını
-   yavaşlatıyordu. Artık sadece o an açık olan sayfanın verisi tazeleniyor.
+   Not: Önceden her sayfa geçişinde ilgili tablo veritabanından yeniden
+   çekiliyordu; bu da her panele girişte gereksiz bir ağ isteği ve bekleme
+   demekti. Artık her tablo sadece ilk ihtiyaç duyulduğunda (veya bir
+   ekleme/silme/güncelleme sonrasında "zorla" parametresiyle) çekiliyor;
+   salt sayfa geçişlerinde bellekteki veriden anında render ediliyor.
 ========================= */
 
 let aktifSayfaId = "anaEkran";
+let yetkinliklerYuklendiMi = false;
+let yetkililerYuklendiMi = false;
 
-function ekraniYenile(sayfaId) {
+function ekraniYenile(sayfaId, zorla = false) {
     const hedef = sayfaId || aktifSayfaId;
 
     switch (hedef) {
         case "operatorPanel":
         case "operatorYonetimi":
-            operatorleriBellegeAl().then(operatorleriGoster);
+            if (zorla) {
+                operatorleriBellegeAl().then(operatorleriGoster);
+            } else {
+                operatorleriGoster();
+            }
             break;
 
         case "kalipPanel":
         case "kalipYonetimi":
-            kaliplariBellegeAl().then(kaliplariGoster);
+            if (zorla) {
+                kaliplariBellegeAl().then(kaliplariGoster);
+            } else {
+                kaliplariGoster();
+            }
             break;
 
         case "yetkinlikPanel":
         case "yetkinlikYonetimi":
-            Promise.all([operatorleriBellegeAl(), kaliplariBellegeAl()]).then(secimleriDoldur);
-            yetkinlikleriGoster();
+            if (zorla) {
+                Promise.all([operatorleriBellegeAl(), kaliplariBellegeAl()]).then(secimleriDoldur);
+            } else {
+                secimleriDoldur();
+            }
+            if (zorla || !yetkinliklerYuklendiMi) {
+                yetkinlikleriBellegeAl().then(yetkinlikleriGoster);
+            } else {
+                yetkinlikleriGoster();
+            }
             break;
 
         case "yetkiliPanel":
         case "yetkiliYonetimi":
-            yetkilileriGoster();
+            if (zorla || !yetkililerYuklendiMi) {
+                yetkilileriBellegeAl().then(yetkilileriGoster);
+            } else {
+                yetkilileriGoster();
+            }
             break;
 
         // Ana ekranın kendi listesi arama yapılınca dolduğu için
@@ -169,7 +184,7 @@ async function operatorEkle() {
 
     alert("Operatör eklendi.");
 operatorEkleModalKapat();
-    ekraniYenile();
+    ekraniYenile(null, true);
 }
 
 /* =========================
@@ -226,7 +241,7 @@ async function topluOperatorEkle() {
 
     alert(kayitlar.length + " operatör eklendi.");
 
-    ekraniYenile();
+    ekraniYenile(null, true);
 }
 
 /* =========================
@@ -346,7 +361,7 @@ async function operatorFotoGuncelle(operatorId, sicilNo) {
 
     alert("Fotoğraf güncellendi.");
 
-    ekraniYenile();
+    ekraniYenile(null, true);
 }
 
 /* =========================
@@ -367,7 +382,7 @@ async function operatorSil(sicilNo) {
         return;
     }
 
-    ekraniYenile();
+    ekraniYenile(null, true);
 }
 
 /* =========================
@@ -431,7 +446,7 @@ async function kalipEkle() {
 
     alert("Kalıp eklendi.");
 
-    ekraniYenile();
+    ekraniYenile(null, true);
 }
 
 /* =========================
@@ -485,7 +500,7 @@ async function topluKalipEkle() {
 
     alert(kayitlar.length + " kalıp eklendi.");
 
-    ekraniYenile();
+    ekraniYenile(null, true);
 }
 
 /* =========================
@@ -555,7 +570,7 @@ async function kalipSil(id) {
         return;
     }
 
-    ekraniYenile();
+    ekraniYenile(null, true);
 }
 
 /* =========================
@@ -606,13 +621,9 @@ async function yetkinlikEkle() {
    YETKİNLİKLERİ GÖSTER
 ========================= */
 
-async function yetkinlikleriGoster() {
-    let div = document.getElementById("yetkinlikListesi");
+let tumYetkinlikler = [];
 
-    if (!div) return;
-
-    div.innerHTML = "Yükleniyor...";
-
+async function yetkinlikleriBellegeAl() {
     const { data, error } = await supabaseClient
         .from("skills")
         .select(`
@@ -623,7 +634,8 @@ async function yetkinlikleriGoster() {
             operators (
                 ad_soyad,
                 sicil_no,
-                unvan
+                unvan,
+                resim
             ),
             operations (
                 operasyon_adi
@@ -633,16 +645,24 @@ async function yetkinlikleriGoster() {
 
     if (error) {
         console.log(error);
-        div.innerHTML = "Yetkinlikler yüklenemedi.";
         return;
     }
 
-    if (!data || data.length === 0) {
+    tumYetkinlikler = data || [];
+    yetkinliklerYuklendiMi = true;
+}
+
+function yetkinlikleriGoster() {
+    let div = document.getElementById("yetkinlikListesi");
+
+    if (!div) return;
+
+    if (!tumYetkinlikler || tumYetkinlikler.length === 0) {
         div.innerHTML = "Kayıtlı yetkinlik yok.";
         return;
     }
 
-    div.innerHTML = data.map(function (y) {
+    div.innerHTML = tumYetkinlikler.map(function (y) {
         return `
             <div class="kalip-card">
 
@@ -702,7 +722,7 @@ async function yetkinlikSil(id) {
         return;
     }
 
-    ekraniYenile();
+    ekraniYenile(null, true);
 }
 
 /* =========================
@@ -1019,10 +1039,9 @@ function mainKalipAutocomplete() {
    ANA EKRAN OPERATÖR GETİR
 ========================= */
 
-async function kalipOperatorleriniGetir() {
+function kalipOperatorleriniGetir() {
     let kalipId = Number(document.getElementById("mainSelectedKalip").value);
     let sonuc = document.getElementById("operatorSonuclari");
-    let searchBtn = document.querySelector(".main-search-button");
 
     sonuc.innerHTML = "";
 
@@ -1030,42 +1049,12 @@ async function kalipOperatorleriniGetir() {
         return;
     }
 
-    // Görsel geri bildirim: Butonu geçici olarak pasifleştir
-    if (searchBtn) {
-        searchBtn.innerText = "Sorgulanıyor...";
-        searchBtn.style.opacity = "0.7";
-    }
-
-    const { data, error } = await supabaseClient
-        .from("skills")
-        .select(`
-            id,
-            operator_id,
-            operation_id,
-            seviye,
-            operators (
-                ad_soyad,
-                sicil_no,
-                unvan,
-                resim
-            ),
-            operations (
-                operasyon_adi
-            )
-        `)
-        .eq("operation_id", kalipId)
-        .order("seviye", { ascending: false });
-
-    if (searchBtn) {
-        searchBtn.innerText = "→ ARA";
-        searchBtn.style.opacity = "1";
-    }
-
-    if (error) {
-        console.log(error);
-        sonuc.innerHTML = `<div class="panel-card">Arama hatası oluştu.</div>`;
-        return;
-    }
+    // Veritabanına her tıklamada yeniden sorgu atmak yerine, uygulama açılışında
+    // bir kere çekilip bellekte tutulan (tumYetkinlikler) veriyi filtreliyoruz;
+    // bu sayede "ARA" butonu bekleme olmadan anında sonuç veriyor.
+    let data = tumYetkinlikler
+        .filter(y => y.operation_id === kalipId)
+        .sort((a, b) => Number(b.seviye) - Number(a.seviye));
 
     if (!data || data.length === 0) {
         sonuc.innerHTML = `<div class="panel-card">Bu kalıp için kayıtlı operatör bulunamadı.</div>`;
@@ -1523,7 +1512,7 @@ async function yetkiliEkle() {
     }
 
     alert("Yetkili başarıyla kaydedildi.");
-    ekraniYenile();
+    ekraniYenile(null, true);
     
     // Formu temizle
     document.getElementById("yeniYetkiliSicil").value = "";
@@ -1537,18 +1526,33 @@ async function yetkiliEkle() {
     if(document.getElementById("yeniYetkiliCanAccessYetkili")) document.getElementById("yeniYetkiliCanAccessYetkili").checked = false;
 }
 
-async function yetkilileriGoster() {
-    let div = document.getElementById("yetkiliListesi");
-    if (!div) return;
+let tumYetkililer = [];
 
+async function yetkilileriBellegeAl() {
     const { data, error } = await supabaseClient
         .from("authorizers")
         .select("*")
         .order("ad_soyad", { ascending: true });
 
-    if (error) return;
+    if (error) {
+        console.log(error);
+        return;
+    }
 
-    div.innerHTML = data.map(y => `
+    tumYetkililer = data || [];
+    yetkililerYuklendiMi = true;
+}
+
+function yetkilileriGoster() {
+    let div = document.getElementById("yetkiliListesi");
+    if (!div) return;
+
+    if (!tumYetkililer || tumYetkililer.length === 0) {
+        div.innerHTML = "Kayıtlı yetkili yok.";
+        return;
+    }
+
+    div.innerHTML = tumYetkililer.map(y => `
             <div class="kalip-card">
                 <strong>${y.ad_soyad}</strong> (Sicil: ${y.sicil_no})<br>
                 Ünvan: ${y.unvan || "-"}<br>
@@ -1579,7 +1583,7 @@ async function yetkiliSil(id) {
         alert("Silme hatası: " + error.message);
         return;
     }
-    ekraniYenile();
+    ekraniYenile(null, true);
 }
 
 /* =========================
@@ -1662,7 +1666,7 @@ async function yetkiliGuncelle() {
 
     alert("Yetkili bilgileri başarıyla güncellendi.");
     yetkiliDuzenleModalKapat();
-    ekraniYenile();
+    ekraniYenile(null, true);
 }
 
 /* =========================
@@ -2020,7 +2024,13 @@ async function signatureKaydet() {
         
         // Eğer açık modal varsa kapat ve listeleri tazele
         if (document.getElementById("yetkinlikModal")) yetkinlikModalKapat();
-        ekraniYenile();
+
+        // tumYetkinlikler önbelleği hem yetkinlik panelinde hem ana ekran
+        // aramasında kullanılıyor; kayıttan hemen sonra güncel olduğundan
+        // emin olmak için burada açıkça bekliyoruz (aksi halde ana ekrandan
+        // yapılan bir seviye yükseltmesi arama sonuçlarına yansımayabilirdi).
+        await yetkinlikleriBellegeAl();
+        ekraniYenile(null, true);
         if (typeof kalipOperatorleriniGetir === "function") kalipOperatorleriniGetir();
         // Not: kalibaGoreOperatorAra() "aramaKalipKodu" adlı bir input arıyor ama
         // bu sayfada artık böyle bir alan yok; element yokken çağrılırsa
