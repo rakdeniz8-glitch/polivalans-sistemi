@@ -598,6 +598,7 @@ body {
     width: 100vw !important;
     height: 100vh !important;
     background: rgba(8, 36, 77, 0.8) !important;
+    -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
     z-index: 999999 !important;
     display: none; /* JS ile flex yapılacak */
@@ -971,6 +972,15 @@ body {
 ========================= */
 
 @media (max-width: 768px) {
+
+    /* iOS Safari, font-size 16px'in altındaki inputlara odaklanınca
+       sayfayı otomatik yakınlaştırır; bu da kullanıcıya "dokununca tepki
+       vermiyor/kayboluyor" hissi verir. 16px'e sabitleyerek engelliyoruz. */
+    input,
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
 
     .galsan-header {
         height: auto;

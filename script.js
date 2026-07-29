@@ -18,8 +18,7 @@ const SESSION_TIMEOUT_MS = 10 * 60 * 1000; // 10 Dakika
 ========================= */
 
 window.onload = async function () {
-    await kaliplariBellegeAl();
-    await operatorleriBellegeAl();
+    await Promise.all([kaliplariBellegeAl(), operatorleriBellegeAl()]);
 
     document.getElementById("mainSystem").style.display = "block";
 
@@ -51,14 +50,41 @@ window.onload = async function () {
 
 /* =========================
    GENEL YENİLEME
+   Not: Her sayfa geçişinde TÜM tabloları yeniden çekmek
+   (operatörler + kalıplar + yetkililer + yetkinlikler) sayfa açılışını
+   yavaşlatıyordu. Artık sadece o an açık olan sayfanın verisi tazeleniyor.
 ========================= */
 
-function ekraniYenile() {
-    operatorleriGoster();
-    kaliplariGoster();
-    yetkilileriGoster();
-    secimleriDoldur(); // Yetkinlik tanımlama sayfasındaki select'leri doldurur
-    yetkinlikleriGoster();
+let aktifSayfaId = "anaEkran";
+
+function ekraniYenile(sayfaId) {
+    const hedef = sayfaId || aktifSayfaId;
+
+    switch (hedef) {
+        case "operatorPanel":
+        case "operatorYonetimi":
+            operatorleriBellegeAl().then(operatorleriGoster);
+            break;
+
+        case "kalipPanel":
+        case "kalipYonetimi":
+            kaliplariBellegeAl().then(kaliplariGoster);
+            break;
+
+        case "yetkinlikPanel":
+        case "yetkinlikYonetimi":
+            Promise.all([operatorleriBellegeAl(), kaliplariBellegeAl()]).then(secimleriDoldur);
+            yetkinlikleriGoster();
+            break;
+
+        case "yetkiliPanel":
+        case "yetkiliYonetimi":
+            yetkilileriGoster();
+            break;
+
+        // Ana ekranın kendi listesi arama yapılınca dolduğu için
+        // burada ekstra bir sorgu atmaya gerek yok.
+    }
 }
 
 /* =========================
@@ -207,50 +233,41 @@ async function topluOperatorEkle() {
    OPERATÖRLERİ GÖSTER
 ========================= */
 
-async function operatorleriGoster() {
+function operatorleriGoster() {
     let div = document.getElementById("operatorListesi");
 
     if (!div) return;
 
-    div.innerHTML = "Yükleniyor...";
-
-    const { data, error } = await supabaseClient
-        .from("operators")
-        .select("*")
-        .order("ad_soyad", { ascending: true });
-
-    if (error) {
-        console.log(error);
-        div.innerHTML = "Operatörler yüklenemedi.";
-        return;
-    }
-
-    div.innerHTML = "";
+    // Veritabanına tekrar sorgu atmak yerine bellekteki (tumOperatorler) veriyi kullanıyoruz;
+    // liste zaten ekraniYenile() içinde operatorleriBellegeAl() ile tazelenmiş oluyor.
+    let data = [...tumOperatorler].sort((a, b) =>
+        (a.ad_soyad || "").localeCompare(b.ad_soyad || "", "tr")
+    );
 
     if (!data || data.length === 0) {
         div.innerHTML = "Kayıtlı operatör yok.";
         return;
     }
+
     let arama = document.getElementById("operatorArama")?.value
-    ?.toLowerCase()
-    .trim() || "";
+        ?.toLowerCase()
+        .trim() || "";
 
-let filtreliData = data;
+    let filtreliData = data;
 
-if (arama !== "") {
+    if (arama !== "") {
+        filtreliData = data.filter(op => {
+            let ad = op.ad_soyad?.toLowerCase() || "";
+            let sicil = op.sicil_no?.toLowerCase() || "";
 
-    filtreliData = data.filter(op => {
+            return ad.includes(arama) || sicil.includes(arama);
+        });
+    }
 
-        let ad = op.ad_soyad?.toLowerCase() || "";
-        let sicil = op.sicil_no?.toLowerCase() || "";
-
-        return ad.includes(arama) || sicil.includes(arama);
-    });
-}
-filtreliData.forEach(function (op) {
+    div.innerHTML = filtreliData.map(function (op) {
         let foto = op.resim ? op.resim : "default-user.png";
 
-        div.innerHTML += `
+        return `
             <div class="operator-card" onclick="operatorDetayAc(${op.id})">
 
                 <img src="${foto}" class="operator-photo">
@@ -260,7 +277,7 @@ filtreliData.forEach(function (op) {
                     Sicil: ${op.sicil_no}<br>
                     Ünvan: ${op.unvan || "-"}<br><br>
 
-                    <input 
+                    <input
                         type="file"
                         id="foto_${op.id}"
                         accept="image/*">
@@ -277,7 +294,7 @@ filtreliData.forEach(function (op) {
                 </div>
             </div>
         `;
-    });
+    }).join("");
 }
 /* =========================
    OPERATÖR FOTOĞRAF GÜNCELLE
@@ -475,7 +492,7 @@ async function topluKalipEkle() {
    KALIPLARI GÖSTER
 ========================= */
 
-async function kaliplariGoster() {
+function kaliplariGoster() {
 
     let div = document.getElementById("kalipListesi");
 
@@ -486,23 +503,9 @@ async function kaliplariGoster() {
         ?.value
         .toLowerCase() || "";
 
-    div.innerHTML = "Yükleniyor...";
-
-    const { data, error } = await supabaseClient
-        .from("operations")
-        .select("*")
-        .order("operasyon_adi", { ascending: true });
-
-    if (error) {
-        console.log(error);
-        div.innerHTML = "Kalıplar yüklenemedi.";
-        return;
-    }
-
-    div.innerHTML = "";
-
-    let filtreli = data.filter(function (k) {
-
+    // Veritabanına tekrar sorgu atmak yerine bellekteki (tumKaliplar) veriyi kullanıyoruz;
+    // liste zaten ekraniYenile() içinde kaliplariBellegeAl() ile tazelenmiş oluyor.
+    let filtreli = tumKaliplar.filter(function (k) {
         return k.operasyon_adi
             ?.toLowerCase()
             .includes(arama);
@@ -513,16 +516,15 @@ async function kaliplariGoster() {
         return;
     }
 
-    filtreli.forEach(function (k) {
-
-        div.innerHTML += `
+    div.innerHTML = filtreli.map(function (k) {
+        return `
             <div class="kalip-card">
 
                 <strong>${k.operasyon_adi}</strong>
 
                 <br><br>
 
-                <button 
+                <button
                     class="delete-btn"
                     onclick="kalipSil(${k.id})">
 
@@ -532,7 +534,7 @@ async function kaliplariGoster() {
 
             </div>
         `;
-    });
+    }).join("");
 }
 
 /* =========================
@@ -560,44 +562,23 @@ async function kalipSil(id) {
    SEÇİMLERİ DOLDUR
 ========================= */
 
-async function secimleriDoldur() {
+function secimleriDoldur() {
     let opSelect = document.getElementById("yetkinlikOperator");
     let kalipSelect = document.getElementById("yetkinlikKalip");
 
     if (!opSelect || !kalipSelect) return;
 
-    opSelect.innerHTML = `<option value="">Operatör Seç</option>`;
-    kalipSelect.innerHTML = `<option value="">Kalıp Seç</option>`;
+    // Veritabanına yeniden sorgu atmak yerine zaten bellekte tuttuğumuz
+    // tumOperatorler / tumKaliplar listelerini kullanıyoruz (gereksiz ağ isteğini önler).
+    let operatorlerSirali = [...tumOperatorler].sort((a, b) =>
+        (a.ad_soyad || "").localeCompare(b.ad_soyad || "", "tr")
+    );
 
-    const { data: operatorler } = await supabaseClient
-        .from("operators")
-        .select("*")
-        .order("ad_soyad", { ascending: true });
+    opSelect.innerHTML = `<option value="">Operatör Seç</option>` +
+        operatorlerSirali.map(op => `<option value="${op.id}">${op.ad_soyad} - ${op.sicil_no}</option>`).join("");
 
-    if (operatorler) {
-        operatorler.forEach(function (op) {
-            opSelect.innerHTML += `
-                <option value="${op.id}">
-                    ${op.ad_soyad} - ${op.sicil_no}
-                </option>
-            `;
-        });
-    }
-
-    const { data: kaliplar } = await supabaseClient
-        .from("operations")
-        .select("*")
-        .order("operasyon_adi", { ascending: true });
-
-    if (kaliplar) {
-        kaliplar.forEach(function (k) {
-            kalipSelect.innerHTML += `
-                <option value="${k.id}">
-                    ${k.operasyon_adi}
-                </option>
-            `;
-        });
-    }
+    kalipSelect.innerHTML = `<option value="">Kalıp Seç</option>` +
+        tumKaliplar.map(k => `<option value="${k.id}">${k.operasyon_adi}</option>`).join("");
 }
 
 /* =========================
@@ -620,10 +601,6 @@ async function yetkinlikEkle() {
     // Doğrudan kaydetmek yerine imza modalını açıyoruz
     signatureModalAc(null, operatorId, kalipId, seviye, operatorAd, kalipAd, "NEW");
 }
-
-/* =========================
-   YETKİNLİKLERİ GÖSTER
-========================= */
 
 /* =========================
    YETKİNLİKLERİ GÖSTER
@@ -660,16 +637,13 @@ async function yetkinlikleriGoster() {
         return;
     }
 
-    div.innerHTML = "";
-
     if (!data || data.length === 0) {
         div.innerHTML = "Kayıtlı yetkinlik yok.";
         return;
     }
 
-    data.forEach(function (y) {
-
-        div.innerHTML += `
+    div.innerHTML = data.map(function (y) {
+        return `
             <div class="kalip-card">
 
                 <strong>${y.operators?.ad_soyad || ""}</strong><br>
@@ -685,7 +659,7 @@ async function yetkinlikleriGoster() {
                 </div>
 
                 ${Number(y.seviye) < 4 ? `
-                    <button 
+                    <button
                         class="levelup-btn"
                         onclick="event.stopPropagation(); seviyeYukseltModalAc(
                             ${y.id},
@@ -699,7 +673,7 @@ async function yetkinlikleriGoster() {
 
                 <br><br>
 
-                <button 
+                <button
                     class="delete-btn"
                     onclick="yetkinlikSil(${y.id})">
                     Sil
@@ -707,7 +681,7 @@ async function yetkinlikleriGoster() {
 
             </div>
         `;
-    });
+    }).join("");
 }
 
 /* =========================
@@ -783,19 +757,19 @@ async function kalibaGoreOperatorAra() {
 
     let kalipAdi = uygunlar[0]?.operations?.operasyon_adi || "";
 
-    sonuc.innerHTML = `
+    let baslikHtml = `
         <div class="result-title">
             ${kalipAdi}
         </div>
     `;
 
-    uygunlar.forEach(function (y) {
+    let kartlarHtml = uygunlar.map(function (y) {
 
         let foto = y.operators?.resim
             ? y.operators.resim
             : "default-user.png";
 
-        sonuc.innerHTML += `
+        return `
             <div class="operator-card result-card">
 
                 <img src="${foto}" class="operator-photo">
@@ -810,7 +784,7 @@ async function kalibaGoreOperatorAra() {
                         ${seviyeAciklamasi(y.seviye)}
                     </div>
 ${Number(y.seviye) < 4 ? `
-    <button 
+    <button
         class="levelup-btn"
         onclick="event.stopPropagation(); seviyeYukseltModalAc(
             ${y.id},
@@ -825,7 +799,9 @@ ${Number(y.seviye) < 4 ? `
 
             </div>
         `;
-    });
+    }).join("");
+
+    sonuc.innerHTML = baslikHtml + kartlarHtml;
 }
 function kalipDropdownFiltrele() {
 
@@ -997,9 +973,10 @@ function sayfaAc(sayfaId) {
     }
 
     localStorage.setItem("aktifSayfa", sayfaId); // Son açılan sayfayı kaydet
+    aktifSayfaId = sayfaId; // ekraniYenile()'nin arkasından çağrılabilmesi için son açık sayfayı tutuyoruz
 
-    // Sayfa her açıldığında veya menüden geçiş yapıldığında verileri tazelemek için çağırıyoruz.
-    ekraniYenile();
+    // Sayfa her açıldığında veya menüden geçiş yapıldığında sadece o sayfanın verisini tazeliyoruz.
+    ekraniYenile(sayfaId);
 }
 
 
@@ -1095,13 +1072,13 @@ async function kalipOperatorleriniGetir() {
         return;
     }
 
-    data.forEach(kayit => {
+    sonuc.innerHTML = data.map(kayit => {
 
-    let foto = kayit.operators?.resim 
-        ? kayit.operators.resim 
+    let foto = kayit.operators?.resim
+        ? kayit.operators.resim
         : "default-user.png";
 
-    sonuc.innerHTML += `
+    return `
     <div class="operator-card result-card">
 
         <img src="${foto}" class="operator-photo">
@@ -1117,7 +1094,7 @@ async function kalipOperatorleriniGetir() {
             </div>
 
             ${Number(kayit.seviye) < 4 ? `
-                <button 
+                <button
                     class="levelup-btn"
                     onclick="event.stopPropagation(); seviyeYukseltModalAc(
                         ${kayit.id},
@@ -1133,7 +1110,7 @@ async function kalipOperatorleriniGetir() {
 
     </div>
 `;
-});
+}).join("");
 
     // Sayfayı sonuçların olduğu yere yumuşak bir şekilde kaydır
     setTimeout(() => {
@@ -1571,9 +1548,7 @@ async function yetkilileriGoster() {
 
     if (error) return;
 
-    div.innerHTML = "";
-    data.forEach(y => {
-        div.innerHTML += `
+    div.innerHTML = data.map(y => `
             <div class="kalip-card">
                 <strong>${y.ad_soyad}</strong> (Sicil: ${y.sicil_no})<br>
                 Ünvan: ${y.unvan || "-"}<br>
@@ -1589,8 +1564,7 @@ async function yetkilileriGoster() {
                 <button class="levelup-btn" style="margin-right: 5px; margin-bottom: 5px;" onclick="yetkiliDuzenleModalAc(${y.id})">Düzenle</button>
                 <button class="delete-btn" onclick="yetkiliSil(${y.id})">Sil</button>
             </div>
-        `;
-    });
+        `).join("");
 }
 
 async function yetkiliSil(id) {
@@ -2048,7 +2022,12 @@ async function signatureKaydet() {
         if (document.getElementById("yetkinlikModal")) yetkinlikModalKapat();
         ekraniYenile();
         if (typeof kalipOperatorleriniGetir === "function") kalipOperatorleriniGetir();
-        if (typeof kalibaGoreOperatorAra === "function") kalibaGoreOperatorAra();
+        // Not: kalibaGoreOperatorAra() "aramaKalipKodu" adlı bir input arıyor ama
+        // bu sayfada artık böyle bir alan yok; element yokken çağrılırsa
+        // null.value hatası fırlatıp başarılı kaydı bile "hata oluştu" gibi gösteriyordu.
+        if (document.getElementById("aramaKalipKodu") && typeof kalibaGoreOperatorAra === "function") {
+            kalibaGoreOperatorAra();
+        }
 
     } catch (err) {
         console.error("Kayıt Hatası:", err);
